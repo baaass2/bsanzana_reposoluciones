@@ -14,14 +14,14 @@
 
 int calculo_mes(){
 	
-	float i=2,valor_cuotas_sucecivas=10000;
+	int i=2,valor_cuotas_sucecivas=10;
 	
-	int pri_cuota=10000;
+	int pri_cuota=10;
 	printf(" Mes numero 1 debe pagar:  %d ", pri_cuota);
 	
 	for (i=2; i<=20; i++){
 		valor_cuotas_sucecivas=(valor_cuotas_sucecivas*2);
-		printf("\n Mes numero %.0f debe pagar: %.0f ",i ,valor_cuotas_sucecivas);
+		printf("\n Mes numero %.d debe pagar: %d ",i ,valor_cuotas_sucecivas);
 	}
 	return valor_cuotas_sucecivas;
 }
