@@ -15,6 +15,7 @@
 int calculo_mes(){
 	
 	int i=2,valor_cuotas_sucecivas=10;
+	float totalapagar;
 	
 	int pri_cuota=10;
 	printf(" Mes numero 1 debe pagar:  %d ", pri_cuota);
@@ -22,7 +23,9 @@ int calculo_mes(){
 	for (i=2; i<=20; i++){
 		valor_cuotas_sucecivas=(valor_cuotas_sucecivas*2);
 		printf("\n Mes numero %.d debe pagar: %d ",i ,valor_cuotas_sucecivas);
+		totalapagar=totalapagar+valor_cuotas_sucecivas;
 	}
+	printf("\n El total a pagar despues de los 20 meses %.0f" ,totalapagar);
 	return valor_cuotas_sucecivas;
 }
 
