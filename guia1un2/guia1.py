@@ -51,22 +51,25 @@ class main():
     def dialogo_resultado(self, event):
         entry_texto1 = self.texto1
         entry_texto2 = self.texto2
+        entry_sbutton = self.spinbutton
         texto1 = self.texto1.get_text()
         texto2 = self.texto2.get_text()
        
-        p = DialogoResultado(texto1, texto2, entry_texto1, entry_texto2)
+        p = DialogoResultado(texto1, texto2, entry_texto1, entry_texto2, entry_sbutton)
     
     def dialogo_advertencia(self, event):
         entry_texto1 = self.texto1
         entry_texto2 = self.texto2
-        p = DialogoAdvertencia(entry_texto1, entry_texto2)
+        entry_sbutton = self.spinbutton
+        p = DialogoAdvertencia(entry_texto1, entry_texto2, entry_sbutton)
         
 class DialogoResultado():
     
-    def __init__(self, texto1, texto2, entry_texto1, entry_texto2):
+    def __init__(self, texto1, texto2, entry_texto1, entry_texto2, entry_sbutton):
         
         self.entry_texto1 = entry_texto1
         self.entry_texto2 = entry_texto2
+        self.entry_sbutton = entry_sbutton
         self.texto1 = texto1
         self.texto2 = texto2
         largo = len(self.texto1)+len(self.texto2)
@@ -94,8 +97,9 @@ class DialogoResultado():
         self.ventana_resultado.show_all()
         
     def reiniciar(self, event):
-        self.entry_texto1.set_text(" ")
-        self.entry_texto2.set_text(" ")
+        self.entry_texto1.set_text("")
+        self.entry_texto2.set_text("")
+        self.entry_sbutton.set_text("")
         self.ventana_resultado.destroy()
         
     def cerrar(self, event):
@@ -103,10 +107,11 @@ class DialogoResultado():
 
 class DialogoAdvertencia():
     
-    def __init__(self, entry_texto1, entry_texto2):
+    def __init__(self, entry_texto1, entry_texto2, entry_sbutton):
         
         self.entry_texto1 = entry_texto1
         self.entry_texto2 = entry_texto2
+        self.entry_sbutton = entry_sbutton
         self.builder = Gtk.Builder()
         self.builder.add_from_file("gladeguia1.glade")
 
@@ -125,7 +130,7 @@ class DialogoAdvertencia():
         
         self.entry_texto1.set_text("")
         self.entry_texto2.set_text("")
-        
+        self.entry_sbutton.set_text("")
         self.dialogo_reset.destroy()
     
     def cancelar_dialogo(self, event):
