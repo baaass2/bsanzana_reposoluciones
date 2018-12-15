@@ -8,34 +8,34 @@ gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk
 
-def open_file_life():
+def open_file_life(nombre_carcel):
     try:
-        with open('prisionerosvida.json', 'r') as file:
+        with open(str(nombre_carcel)+'prisionerosvida.json', 'r') as file:
             data1 = json.load(file)
     except IOError:
         data1 = []
         
     return data1
 
-def save_file_life(data1):
+def save_file_life(data1, nombre_carcel):
     print("Save File")
     
-    with open('prisionerosvida.json', 'w') as file:
+    with open(str(nombre_carcel)+'prisionerosvida.json', 'w') as file:
         json.dump(data1, file, indent=4)
 
-def open_file():
+def open_file(nombre_carcel):
     try:
-        with open('prisioneros.json', 'r') as file:
+        with open(str(nombre_carcel)+'prisioneros.json', 'r') as file:
             data = json.load(file)
     except IOError:
         data = []
         
     return data
 
-def save_file(data):
+def save_file(data, nombre_carcel):
     print("Save File")
     
-    with open('prisioneros.json', 'w') as file:
+    with open(str(nombre_carcel)+'prisioneros.json', 'w') as file:
         json.dump(data, file, indent=4)
 
 def open_file_cuentas():
@@ -55,7 +55,7 @@ def save_file_cuentas(data2):
 
 def open_file_carcel():
     try:
-        with open('carceles.json', 'r') as file:
+        with open('datoscarceles.json', 'r') as file:
             data3 = json.load(file)
     except IOError:
         data3 = []
@@ -65,17 +65,44 @@ def open_file_carcel():
 def save_file_carcel(data3):
     print("Save File")
     
-    with open('carceles.json', 'w') as file:
+    with open('datoscarceles.json', 'w') as file:
         json.dump(data3, file, indent=4)
 
-def obtener_valor_combobox(self, combo):
+def open_file_capacidad(nombrecarcel):
+    try:
+        with open(str(nombrecarcel)+'capacidad.json', 'r') as file:
+            data4 = json.load(file)
+    except IOError:
+        data4 = []
+        
+    return data4
+
+def save_file_capacidad(data4, nombrecarcel):
+    print("Save File")
+    
+    with open(str(nombrecarcel)+'capacidad.json', 'w') as file:
+        json.dump(data4, file, indent=4)
+
+def obtener_valor_combobox(combo):
     tree_iter = combo.get_active_iter()
     if tree_iter is not None:
         model = combo.get_model()
         seleccion = model[tree_iter][0]
 
     return seleccion
-        
+
+def llenar_combo(combo, carceles):
+    
+    lista = Gtk.ListStore(str)
+    
+    for i in carceles:
+        lista.append([i])
+
+    combo.set_model(lista)
+    renderer_text = Gtk.CellRendererText()
+    combo.pack_start(renderer_text, True)
+    combo.add_attribute(renderer_text, "text", 0)
+    
 class InicioSesion():
 
     def __init__(self):
@@ -91,7 +118,6 @@ class InicioSesion():
         self.usuario = self.builder.get_object("Usuario")
         #CONTRASEÑA
         self.contraseña = self.builder.get_object("Contraseña")
-
         #RESULTADO DE SESIÓN
         self.resultado = self.builder.get_object("Resultado")
         # BOTON OK
@@ -115,9 +141,9 @@ class InicioSesion():
         data2 = open_file_cuentas()
         for i in range(len(data2)):
             if usuario == data2[i]['usuario'] and contraseña == data2[i]['contraseña']:
-                rango = data[i]['rango']
+                rango = data2[i]['rango']
                 v = VentanaIngresarCarcel(rango)
-            else:    
+            elif usuario != data2[i]['usuario'] and contraseña != data2[i]['contraseña']:  
                 self.resultado.set_text("Usuario o contraseña incorrectos")
 
 class CrearCuenta():
@@ -159,6 +185,7 @@ class CrearCuenta():
         
 class VentanaIngresarCarcel():
     def __init__(self, rango):
+        self.rango = rango
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
         
@@ -168,15 +195,37 @@ class VentanaIngresarCarcel():
         self.crear_carcel = self.builder.get_object("CrearCarcel")
         self.crear_carcel.connect("clicked", self.formulariocarcel)
         
+        self.combo_carceles = self.builder.get_object("ComboCarceles")
+                
+        self.okvcarcel = self.builder.get_object("OkVentanaCarcel")
+        self.okvcarcel.connect("clicked", self.ok)
+        
         self.ventana_carcel.show_all()
         
+        carceles = []
+        data3 = open_file_carcel()
+        
+        for i in range(len(data3)):
+            nombrecarcel = data3[i][0]
+            print(nombrecarcel)
+            carceles.append(nombrecarcel)
+            
+        llenar_combo(self.combo_carceles, carceles)
         
     def formulariocarcel(self, event):
-        p = FormularioCarcel()
-    
-        
+        if self.rango == 'Alcaide':
+            self.ventana_carcel.destroy()
+            p = FormularioCarcel(self.rango)
+        else:
+            p = VentanaPermiso()
+            
+    def ok(self, event):
+        nombre_carcel = obtener_valor_combobox(self.combo_carceles)
+        p = VentanaMain(nombre_carcel, self.rango)
+            
 class FormularioCarcel():
-    def __init__(self):
+    def __init__(self, rango):
+        self.rango = rango
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
         
@@ -194,29 +243,43 @@ class FormularioCarcel():
         self.formulario_carcel.show_all()
         
     def datos_carcel(self, event):
+        rango = self.rango
         nombrecarcel = self.nombre_carcel.get_text()
-        numerocelda = self.numero_celda.get_value()
-        capacidadcelda = self.capacidad_celda.get_value()
+        numerocelda = self.numero_celda.get_value_as_int()
+        capacidadcelda = self.capacidad_celda.get_value_as_int()
         
-        dic = {str(nombrecarcel):[numerocelda,capacidadcelda]}
+        datos = [nombrecarcel, numerocelda, capacidadcelda]
         
         data3 = open_file_carcel()
-        data3.append(dic)
+        data3.append(datos)
+        save_file_carcel(data3)
         
-        save_file_carcel(data3) 
+        dic = {}
+        
+        for i in range(numerocelda):
+            dic[str(i+1)] = capacidadcelda
+        
+        data4 = open_file_capacidad(nombrecarcel)
+        data4.append(dic)
+        save_file_capacidad(data4, nombrecarcel) 
+             
         
         self.formulario_carcel.destroy()
+        
+        p = VentanaIngresarCarcel(rango)
     
     def cancelar_vformulario(self, event):
+        rango = self.rango
         self.formulario_carcel.destroy()
-
+        p = VentanaIngresarCarcel(rango)
     
     
 class VentanaMain():
     
-    def __init__(self, usuario):
+    def __init__(self, nombre_carcel, rango):
         
-        self.usuario = usuario
+        self.rango = rango
+        self.nombre_carcel = nombre_carcel
         
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
@@ -224,10 +287,8 @@ class VentanaMain():
         window2 = self.builder.get_object("window2")
         window2.set_default_size(600, 400)
         window2.set_title("Menú")
-        window2.connect("destroy", Gtk.main_quit)
         
         #BOTON AGREGAR
-        
         self.boton_agregar = self.builder.get_object("Agregar")
         self.boton_agregar.connect("clicked", self.dialogo_add)
         
@@ -236,7 +297,6 @@ class VentanaMain():
         self.boton_buscar_todo.connect("clicked", self.dialogo_ver_todo)
         
         #BOTON BUSCAR
-        
         self.boton_buscar = self.builder.get_object("BotonBuscar")
         self.boton_buscar.connect("clicked", self.dialogo_buscar)
         
@@ -244,22 +304,23 @@ class VentanaMain():
     
     def dialogo_add(self, btn=None):
         
-        if (self.usuario != 'Guardia'):
-            d = VentanaAdd()
-        elif(self.usuario == 'Guardia'):
+        if (self.rango != 'Guardia'):
+            d = VentanaAdd(self.nombre_carcel)
+        elif(self.rango == 'Guardia'):
             d = VentanaPermiso()
         
     def dialogo_ver_todo(self, btn=None):
-        d = VentanaVerTodo()
+        d = VentanaVerTodo(self.nombre_carcel)
     
     def dialogo_buscar(self, btn=None):
         self.rut_buscar = self.builder.get_object("Buscar")
         rut = self.rut_buscar.get_text()
-        d = VentanaBuscar(rut, self.usuario)    
+        d = VentanaBuscar(rut, self.rango, self.nombre_carcel)    
         
 class VentanaAdd():
     
-    def __init__(self):
+    def __init__(self, nombre_carcel):
+        self.nombre_carcel = nombre_carcel
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
             
@@ -270,9 +331,9 @@ class VentanaAdd():
         self.apellido = self.builder.get_object("Apellido")
         self.rut = self.builder.get_object("Rut")
         self.nacionalidad = self.builder.get_object("Nacionalidad")
-        self.celda = self.builder.get_object("Celda")
+        self.combo_celda = self.builder.get_object("ComboCelda")
         self.sentencia = self.builder.get_object("Sentencia")
-        self.estado = self.builder.get_object("Estado")
+        self.combo_estado = self.builder.get_object("ComboEstado")
         self.descripcion = self.builder.get_object("Descripción")
         
         self.botonOK = self.builder.get_object("OK")
@@ -282,19 +343,34 @@ class VentanaAdd():
         
         self.dialogo_prisionero.show_all()
         
+        data4 = open_file_capacidad(self.nombre_carcel)
+        celdas = []
+        for i in range(len(data4[0])):
+            if data4[0][str(i+1)] != 0:
+                celdas.append(str(i+1))
+        llenar_combo(self.combo_celda, celdas)
+                    
+        
     def guardar_información(self, btn=None):
         
         nombre = self.nombre.get_text()
         apellido = self.apellido.get_text()
         rut = self.rut.get_text()
         nacionalidad = self.nacionalidad.get_text()
-        celda = self.celda.get_text()
+        celda = obtener_valor_combobox(self.combo_celda)
         sentencia = self.sentencia.get_text()
-        estado = self.estado.get_text()
+        estado = obtener_valor_combobox(self.combo_estado)
         descripcion = self.descripcion.get_text()
         
+        #DISMINUIR CAPACIDAD DE LA CELDA ELIJIDA
         
-        data1 = open_file_life()
+        data4 = open_file_capacidad(self.nombre_carcel)
+        celda_selec = data4[0][str(celda)]
+        celda_selec = celda_selec - 1
+        data4[0][str(celda)] = celda_selec
+        save_file_capacidad(data4, self.nombre_carcel)
+        
+        data1 = open_file_life(self.nombre_carcel)
         
         data1.append({str(rut):[]})
         
@@ -303,7 +379,7 @@ class VentanaAdd():
             if(rut == (list(x)[0])):
                 data1[i][str(rut)].append(descripcion)
         
-        save_file_life(data1)
+        save_file_life(data1, self.nombre_carcel)
     
         
         dic = {"nombre": nombre,
@@ -315,9 +391,9 @@ class VentanaAdd():
                 "estado": estado,
                 "descripcion": descripcion}
         
-        data = open_file()
+        data = open_file(self.nombre_carcel)
         data.append(dic)
-        save_file(data)
+        save_file(data, self.nombre_carcel)
         
         d = VentanaExito()
         
@@ -328,8 +404,8 @@ class VentanaAdd():
                 
 class VentanaVerTodo():
     
-    def __init__(self):
-        
+    def __init__(self, nombre_carcel):
+        self.nombre_carcel = nombre_carcel
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
             
@@ -355,7 +431,7 @@ class VentanaVerTodo():
         
     def mostrar_data(self):
         
-        data = open_file()
+        data = open_file(self.nombre_carcel)
     
         for i in data:
             x = [x for x in i.values()]
@@ -364,8 +440,9 @@ class VentanaVerTodo():
 
 class VentanaBuscar():
     
-    def __init__(self, rut, usuario):
-        self.usuario = usuario
+    def __init__(self, rut, rango, nombre_carcel):
+        self.nombre_carcel = nombre_carcel
+        self.rango = rango
         self.rut = rut
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
@@ -406,7 +483,7 @@ class VentanaBuscar():
         
     def mostrar_data(self):
         
-        data = open_file()
+        data = open_file(self.nombre_carcel)
         
         for i in range(len(data)):
             if(self.rut == data[i]['rut']):
@@ -417,45 +494,46 @@ class VentanaBuscar():
     
     def liberar_prisionero(self, event):
         
-        if(self.usuario == 'Alcaide'):
-            data = open_file()
+        if(self.rango == 'Alcaide'):
+            data = open_file(self.nombre_carcel)
             for i in range(len(data)):
                 if(self.rut == data[i]['rut']):
                     it = i
                     data[it]['estado'] = 'Liberado'
-                    save_file(data)
+                    save_file(data, self.nombre_carcel)
                     d = VentanaExito()
                     
-        elif(self.usuario != 'Alcaide'): 
+        elif(self.rango != 'Alcaide'): 
             d = VentanaPermiso()               
     def dialogo_hojavida(self, event):
         
-        d = VentanaHojaVida(self.rut)
+        d = VentanaHojaVida(self.rut, self.nombre_carcel)
         
     def encerrar_prisionero(self, event):
 
-        if(self.usuario == 'Alcaide'):
-            data = open_file()
+        if(self.rango == 'Alcaide'):
+            data = open_file(self.nombre_carcel)
             for i in range(len(data)):
                 if(self.rut == data[i]['rut']):
                     it = i
                     data[it]['estado'] = 'Prisionero'
-                    save_file(data)
+                    save_file(data, self.nombre_carcel)
                     d = VentanaExito()
                     
-        elif(self.usuario != 'Alcaide'): 
+        elif(self.rango != 'Alcaide'): 
             d = VentanaPermiso() 
 
     def editar_descripcion(self, event):
         
-        if(self.usuario != 'Guardia'):
-            d = VentanaEdicionDescripcion(self.rut)
-        elif(self.usuario == 'Guardia'):
+        if(self.rango != 'Guardia'):
+            d = VentanaEdicionDescripcion(self.rut, self.nombre_carcel)
+        elif(self.rango == 'Guardia'):
             d = VentanaPermiso()
                 
 class VentanaEdicionDescripcion():
         
-    def __init__(self, rut):
+    def __init__(self, rut, nombre_carcel):
+        self.nombre_carcel = nombre_carcel
         self.rut = rut
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
@@ -482,21 +560,21 @@ class VentanaEdicionDescripcion():
         nueva_sentencia = self.entry_sentencia.get_text()
         
         
-        data = open_file()
-        data1 = open_file_life()
+        data = open_file(self.nombre_carcel)
+        data1 = open_file_life(self.nombre_carcel)
         
         for i in range(len(data)):
             if(self.rut == data[i]['rut']):
                 it = i
                 data[it]['descripcion'] = nueva_descripcion
                 data[it]['sentencia'] = nueva_sentencia
-                save_file(data)
+                save_file(data, self.nombre_carcel)
         
         for i in range(len(data1)):
             x = data1[i].keys()
             if(self.rut == (list(x)[0])):
                 data1[i][str(self.rut)].append(nueva_descripcion)
-                save_file_life(data1)
+                save_file_life(data1, self.nombre_carcel)
         d = VentanaExito()
         
         self.editar.destroy()
@@ -507,8 +585,8 @@ class VentanaEdicionDescripcion():
 
 class VentanaHojaVida():
     
-    def __init__(self, rut):
-        
+    def __init__(self, rut, nombre_carcel):
+        self.nombre_carcel = nombre_carcel
         self.rut = rut
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
@@ -520,7 +598,7 @@ class VentanaHojaVida():
     
         self.resultado_hoja_vida = self.builder.get_object("ResultadoHojaVida")
         
-        data1 = open_file_life()
+        data1 = open_file_life(self.nombre_carcel)
         
         for i in range(len(data1)):
             x = data1[i].keys()
@@ -528,20 +606,14 @@ class VentanaHojaVida():
                 k = i
                 for k in range(len(data1[i][str(self.rut)])):
                     texto = data1[i][str(self.rut)][k]
-                    
                     texto_label = self.resultado_hoja_vida.get_text()
-                    
                     texto_label += '\n' + texto
-
                     self.resultado_hoja_vida.set_text(texto_label)
         
         self.dialogo_hoja_vida.show_all()
 
 class VentanaPermiso():
-    
     def __init__(self):
-        
-        
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
         

@@ -1,17 +1,27 @@
 [
     {
+        "contrase\u00f1a": "123",
         "usuario": "benja",
-        "rango": "Guardia",
-        "contrase\u00f1a": "123"
+        "rango": "Guardia"
     },
     {
+        "contrase\u00f1a": "123",
         "usuario": "asdads",
-        "rango": "Alcaide",
-        "contrase\u00f1a": "123"
+        "rango": "Alcaide"
     },
     {
+        "contrase\u00f1a": "123",
         "usuario": "asdasd",
-        "rango": "Guardia",
-        "contrase\u00f1a": "123"
+        "rango": "Guardia"
+    },
+    {
+        "contrase\u00f1a": "123",
+        "usuario": "hola",
+        "rango": "Secretaria"
+    },
+    {
+        "contrase\u00f1a": "123",
+        "usuario": "lolito",
+        "rango": "Alcaide"
     }
 ]
