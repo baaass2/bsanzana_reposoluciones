@@ -38,6 +38,44 @@ def save_file(data):
     with open('prisioneros.json', 'w') as file:
         json.dump(data, file, indent=4)
 
+def open_file_cuentas():
+    try:
+        with open('cuentas.json', 'r') as file:
+            data2 = json.load(file)
+    except IOError:
+        data2 = []
+        
+    return data2
+
+def save_file_cuentas(data2):
+    print("Save File")
+    
+    with open('cuentas.json', 'w') as file:
+        json.dump(data2, file, indent=4)
+
+def open_file_carcel():
+    try:
+        with open('carceles.json', 'r') as file:
+            data3 = json.load(file)
+    except IOError:
+        data3 = []
+        
+    return data3
+
+def save_file_carcel(data3):
+    print("Save File")
+    
+    with open('carceles.json', 'w') as file:
+        json.dump(data3, file, indent=4)
+
+def obtener_valor_combobox(self, combo):
+    tree_iter = combo.get_active_iter()
+    if tree_iter is not None:
+        model = combo.get_model()
+        seleccion = model[tree_iter][0]
+
+    return seleccion
+        
 class InicioSesion():
 
     def __init__(self):
@@ -59,27 +97,121 @@ class InicioSesion():
         # BOTON OK
         self.botonOK = self.builder.get_object("OK")
         self.botonOK.connect("clicked", self.revisar_cuenta)
+        
+        self.crearcuenta = self.builder.get_object("CrearCuenta")
+        self.crearcuenta.connect("clicked", self.crear_cuenta)
 
 
         window.show_all()
 
-
+    
+    def crear_cuenta(self, event):
+        p = CrearCuenta()
+        
     def revisar_cuenta(self, btn=None):
         usuario = self.usuario.get_text()
         contraseña = self.contraseña.get_text()
         
-        if usuario == 'Alcaide' and contraseña == '123':
-            v = VentanaMain(usuario)
+        data2 = open_file_cuentas()
+        for i in range(len(data2)):
+            if usuario == data2[i]['usuario'] and contraseña == data2[i]['contraseña']:
+                rango = data[i]['rango']
+                v = VentanaIngresarCarcel(rango)
+            else:    
+                self.resultado.set_text("Usuario o contraseña incorrectos")
 
-        elif usuario == 'Secretaria' and contraseña == '321':
-            v = VentanaMain(usuario)
-
-        elif usuario == 'Guardia' and contraseña == 'lol':
-            v = VentanaMain(usuario)
-        else:    
-            self.resultado.set_text("Usuario o contraseña incorrectos")
+class CrearCuenta():
+    def __init__(self):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("iniciosesion.glade")
+        self.v_crearcuenta = self.builder.get_object("VentanaCrearCuenta")
+        self.v_crearcuenta.set_title("Crear Cuenta")
         
+        self.usuario = self.builder.get_object("EntryUsuario")
+        self.contraseña = self.builder.get_object("EntryContrasena")
+        self.comborango = self.builder.get_object("ComboRango")
+        self.cancelar_crearcuenta = self.builder.get_object("CancelarCrearCuenta")
+        self.cancelar_crearcuenta.connect("clicked", self.cancelarcrearcuenta)
+        self.aceptar_crearcuenta = self.builder.get_object("OkCrearCuenta")
+        self.aceptar_crearcuenta.connect("clicked", self.datos_cuenta)
+        
+        self.v_crearcuenta.show_all()
+        
+    def datos_cuenta(self, event):
+        usuario = self.usuario.get_text()
+        contraseña = self.contraseña.get_text()
+        combo=self.comborango
+        rango = obtener_valor_combobox(self, combo)
+        
+        data2 = open_file_cuentas()
+        
+        dic = {'usuario':usuario,
+                'contraseña':contraseña,
+                'rango':rango}
+        data2.append(dic)
+        
+        save_file_cuentas(data2)
 
+        self.v_crearcuenta.destroy()
+    def cancelarcrearcuenta(self, event):
+        self.v_crearcuenta.destroy()
+        
+        
+class VentanaIngresarCarcel():
+    def __init__(self, rango):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("main.glade")
+        
+        self.ventana_carcel = self.builder.get_object("VentanaCarcel")
+        self.ventana_carcel.set_title("Inicio de Carcel")
+        
+        self.crear_carcel = self.builder.get_object("CrearCarcel")
+        self.crear_carcel.connect("clicked", self.formulariocarcel)
+        
+        self.ventana_carcel.show_all()
+        
+        
+    def formulariocarcel(self, event):
+        p = FormularioCarcel()
+    
+        
+class FormularioCarcel():
+    def __init__(self):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("main.glade")
+        
+        self.formulario_carcel = self.builder.get_object("FormularioCarcel")
+        self.formulario_carcel.set_title("FormularioCarcel")
+        
+        self.nombre_carcel = self.builder.get_object("EntryNombreCarcel")
+        self.numero_celda = self.builder.get_object("SpinNumeroCelda")
+        self.capacidad_celda = self.builder.get_object("SpinCapacidadCelda")   
+        self.aceptar_formulario = self.builder.get_object("OkFormularioCarcel")
+        self.aceptar_formulario.connect("clicked", self.datos_carcel)
+        self.cancelar_formulario = self.builder.get_object("CancelarFormularioCarcel")
+        self.cancelar_formulario.connect("clicked", self.cancelar_vformulario)     
+        
+        self.formulario_carcel.show_all()
+        
+    def datos_carcel(self, event):
+        nombrecarcel = self.nombre_carcel.get_text()
+        numerocelda = self.numero_celda.get_value()
+        capacidadcelda = self.capacidad_celda.get_value()
+        
+        dic = {str(nombrecarcel):[numerocelda,capacidadcelda]}
+        
+        data3 = open_file_carcel()
+        data3.append(dic)
+        
+        save_file_carcel(data3) 
+        
+        self.formulario_carcel.destroy()
+    
+    def cancelar_vformulario(self, event):
+        self.formulario_carcel.destroy()
+
+    
+    
 class VentanaMain():
     
     def __init__(self, usuario):
