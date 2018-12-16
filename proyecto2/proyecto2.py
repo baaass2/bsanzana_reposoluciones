@@ -110,9 +110,8 @@ class InicioSesion():
         self.builder = Gtk.Builder()
         self.builder.add_from_file("iniciosesion.glade")
 
-        window = self.builder.get_object("window")
-        window.set_title("Inicio de Sesión")
-        window.connect("destroy", Gtk.main_quit)
+        self.window = self.builder.get_object("window")
+        self.window.set_title("Inicio de Sesión")
 
         #USUARIO
         self.usuario = self.builder.get_object("Usuario")
@@ -128,7 +127,7 @@ class InicioSesion():
         self.crearcuenta.connect("clicked", self.crear_cuenta)
 
 
-        window.show_all()
+        self.window.show_all()
 
     
     def crear_cuenta(self, event):
@@ -142,6 +141,7 @@ class InicioSesion():
         for i in range(len(data2)):
             if usuario == data2[i]['usuario'] and contraseña == data2[i]['contraseña']:
                 rango = data2[i]['rango']
+                self.window.destroy()
                 v = VentanaIngresarCarcel(rango)
             elif usuario != data2[i]['usuario'] and contraseña != data2[i]['contraseña']:  
                 self.resultado.set_text("Usuario o contraseña incorrectos")
@@ -167,7 +167,7 @@ class CrearCuenta():
         usuario = self.usuario.get_text()
         contraseña = self.contraseña.get_text()
         combo=self.comborango
-        rango = obtener_valor_combobox(self, combo)
+        rango = obtener_valor_combobox(combo)
         
         data2 = open_file_cuentas()
         
@@ -186,6 +186,7 @@ class CrearCuenta():
 class VentanaIngresarCarcel():
     def __init__(self, rango):
         self.rango = rango
+        self.error = ""
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
         
@@ -207,7 +208,6 @@ class VentanaIngresarCarcel():
         
         for i in range(len(data3)):
             nombrecarcel = data3[i][0]
-            print(nombrecarcel)
             carceles.append(nombrecarcel)
             
         llenar_combo(self.combo_carceles, carceles)
@@ -217,7 +217,8 @@ class VentanaIngresarCarcel():
             self.ventana_carcel.destroy()
             p = FormularioCarcel(self.rango)
         else:
-            p = VentanaPermiso()
+            self.error = "dato_repetido"
+            p = VentanaPermiso(self.error)
             
     def ok(self, event):
         nombre_carcel = obtener_valor_combobox(self.combo_carceles)
@@ -233,6 +234,7 @@ class FormularioCarcel():
         self.formulario_carcel.set_title("FormularioCarcel")
         
         self.nombre_carcel = self.builder.get_object("EntryNombreCarcel")
+        self.nombre_carcel.connect("changed", self.revisar_dato)
         self.numero_celda = self.builder.get_object("SpinNumeroCelda")
         self.capacidad_celda = self.builder.get_object("SpinCapacidadCelda")   
         self.aceptar_formulario = self.builder.get_object("OkFormularioCarcel")
@@ -274,10 +276,20 @@ class FormularioCarcel():
         p = VentanaIngresarCarcel(rango)
     
     
+    def revisar_dato(self, event):
+        self.error = 'dato_repetido'
+        nombrecarcel = self.nombre_carcel.get_text()
+        data3 = open_file_carcel()
+        
+        for i in range(len(data3)):
+            if data3[i][0] == nombrecarcel:
+                p = VentanaPermiso(self.error)
+                self.nombre_carcel.set_text("")
+    
 class VentanaMain():
     
     def __init__(self, nombre_carcel, rango):
-        
+        self.error = 'permiso_denegado'
         self.rango = rango
         self.nombre_carcel = nombre_carcel
         
@@ -307,7 +319,7 @@ class VentanaMain():
         if (self.rango != 'Guardia'):
             d = VentanaAdd(self.nombre_carcel)
         elif(self.rango == 'Guardia'):
-            d = VentanaPermiso()
+            d = VentanaPermiso(self.error)
         
     def dialogo_ver_todo(self, btn=None):
         d = VentanaVerTodo(self.nombre_carcel)
@@ -343,6 +355,8 @@ class VentanaAdd():
         
         self.dialogo_prisionero.show_all()
         
+        #DE ESTA MANERA SOLO SE LLENA EL COMBOBOX CON 
+        #LAS CELDAS QUE TIENE CAPACIDAD
         data4 = open_file_capacidad(self.nombre_carcel)
         celdas = []
         for i in range(len(data4[0])):
@@ -370,8 +384,8 @@ class VentanaAdd():
         data4[0][str(celda)] = celda_selec
         save_file_capacidad(data4, self.nombre_carcel)
         
+        #SE CREA UN JSON CON LA HOJA DE VIDA DE UN PRISIONERO
         data1 = open_file_life(self.nombre_carcel)
-        
         data1.append({str(rut):[]})
         
         for i in range(len(data1)):
@@ -441,6 +455,7 @@ class VentanaVerTodo():
 class VentanaBuscar():
     
     def __init__(self, rut, rango, nombre_carcel):
+        self.error = "permiso_denegado"
         self.nombre_carcel = nombre_carcel
         self.rango = rango
         self.rut = rut
@@ -504,7 +519,7 @@ class VentanaBuscar():
                     d = VentanaExito()
                     
         elif(self.rango != 'Alcaide'): 
-            d = VentanaPermiso()               
+            d = VentanaPermiso(self.error)               
     def dialogo_hojavida(self, event):
         
         d = VentanaHojaVida(self.rut, self.nombre_carcel)
@@ -521,14 +536,13 @@ class VentanaBuscar():
                     d = VentanaExito()
                     
         elif(self.rango != 'Alcaide'): 
-            d = VentanaPermiso() 
+            d = VentanaPermiso(self.error) 
 
     def editar_descripcion(self, event):
-        
         if(self.rango != 'Guardia'):
             d = VentanaEdicionDescripcion(self.rut, self.nombre_carcel)
         elif(self.rango == 'Guardia'):
-            d = VentanaPermiso()
+            d = VentanaPermiso(self.error)
                 
 class VentanaEdicionDescripcion():
         
@@ -613,16 +627,22 @@ class VentanaHojaVida():
         self.dialogo_hoja_vida.show_all()
 
 class VentanaPermiso():
-    def __init__(self):
+    def __init__(self, error):
+        self.error = error
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
         
         self.ventana_permiso = self.builder.get_object("VentanaPermiso")
-        self.ventana_permiso.set_title("Usted no tiene permiso para ingresar a esta opción")
         
+        self.label_dialogo = self.builder.get_object("LabelDialogo")
         self.botonOKA = self.builder.get_object("BotonOKA")
         self.botonOKA.connect("clicked", self.cerrar)
         
+        if self.error == 'dato_repetido':
+            self.label_dialogo.set_text("Este dato esta repetido, ingresar otro")
+        elif self.error == 'permiso_denegado':
+            self.label_dialogo.set_text("Permiso denegado")
+
         self.ventana_permiso.show_all()
         
     def cerrar(self, event):
