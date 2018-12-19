@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+import operator
 import gi
 import json
 import matplotlib.pyplot as plt
@@ -85,12 +85,16 @@ def save_file_capacidad(data4, nombrecarcel):
         json.dump(data4, file, indent=4)
 
 def obtener_valor_combobox(combo):
-    tree_iter = combo.get_active_iter()
-    if tree_iter is not None:
-        model = combo.get_model()
-        seleccion = model[tree_iter][0]
+    try:
+        tree_iter = combo.get_active_iter()
+        if tree_iter is not None:
+            model = combo.get_model()
+            seleccion = model[tree_iter][0]
 
-    return seleccion
+        return seleccion
+    except UnboundLocalError:
+        error = 'error'
+        return error
 
 def llenar_combo(combo, carceles):
 
@@ -106,6 +110,7 @@ def llenar_combo(combo, carceles):
 
 def graficar(nombre_carcel):
     data4 = open_file_capacidad(nombre_carcel)[0]
+    data2 = open_file(nombre_carcel)
 
     capacidad = len(data4)
     x = []
@@ -116,10 +121,6 @@ def graficar(nombre_carcel):
     for i in range(0, capacidad):
          x[i] = str(x[i])
 
-    datos = []
-    for i in range(1, capacidad+1):
-         datos.append(data4[str(i)])
-
     data3 = open_file_carcel()
     data_3 = []
 
@@ -129,8 +130,20 @@ def graficar(nombre_carcel):
 
     presos = data_3[0]
 
-    for i in range(0, capacidad):
-        datos[i] = presos - datos[i]
+    datos = []
+    for i in range(0,capacidad):
+        datos.append(i)
+
+    for i in range(0,capacidad):
+        nada = 0
+        prisioneros = 0
+        for j in range(0,len(data2)):
+            if  data2[j]["celda"] == str(i+1) and data2[j]["estado"] == "Prisionero":
+                nada = nada + 1
+                prisioneros = prisioneros + 1
+        datos[i] = prisioneros
+        if nada != 0:
+            datos[i] = prisioneros
 
     plt.bar(x, datos, color=(0,1,0), align='center')
     plt.ylabel("Numero de prisioneros")
@@ -149,6 +162,7 @@ class InicioSesion():
 
         self.window = self.builder.get_object("window")
         self.window.set_title("Inicio de Sesión")
+        self.window.connect("destroy", Gtk.main_quit)
 
         #USUARIO
         self.usuario = self.builder.get_object("Usuario")
@@ -174,14 +188,18 @@ class InicioSesion():
         usuario = self.usuario.get_text()
         contraseña = self.contraseña.get_text()
 
+        flag = 0
         data2 = open_file_cuentas()
         for i in range(len(data2)):
             if usuario == data2[i]['usuario'] and contraseña == data2[i]['contraseña']:
                 rango = data2[i]['rango']
-                self.window.destroy()
                 v = VentanaIngresarCarcel(rango)
-            elif usuario != data2[i]['usuario'] and contraseña != data2[i]['contraseña']:
-                self.resultado.set_text("Usuario o contraseña incorrectos")
+                flag = 1
+        if flag == 0:
+            error = 'usr_pass_error'
+            self.usuario.set_text("")
+            self.contraseña.set_text("")
+            p = VentanaPermiso(error)
 
 class CrearCuenta():
     def __init__(self):
@@ -200,22 +218,48 @@ class CrearCuenta():
 
         self.v_crearcuenta.show_all()
 
+
     def datos_cuenta(self, event):
         usuario = self.usuario.get_text()
         contraseña = self.contraseña.get_text()
         combo=self.comborango
-        rango = obtener_valor_combobox(combo)
 
-        data2 = open_file_cuentas()
 
-        dic = {'usuario':usuario,
-                'contraseña':contraseña,
-                'rango':rango}
-        data2.append(dic)
+        if len(usuario) <= 4 or len(contraseña) <= 4:
+            self.v_crearcuenta.destroy()
+            error = 'usr_no_valido'
+            v = VentanaPermiso(error)
+            v = CrearCuenta()
 
-        save_file_cuentas(data2)
 
-        self.v_crearcuenta.destroy()
+        else:
+            rango = obtener_valor_combobox(combo)
+            if rango == 'error':
+                error = 'combobox_error'
+                p = VentanaPermiso(error)
+            else:
+                data = open_file_cuentas()
+                repetida = 0
+
+                for i in range(len(data)):
+                    if data[i]["usuario"] == usuario:
+                        error = 'cuenta_repetida'
+                        p = VentanaPermiso(error)
+                        repetida = 1
+
+                if repetida == 0:
+                    data2 = open_file_cuentas()
+
+                    dic = {'usuario':usuario,
+                            'contraseña':contraseña,
+                            'rango':rango}
+                    data2.append(dic)
+
+                    save_file_cuentas(data2)
+
+                    self.v_crearcuenta.destroy()
+
+
     def cancelarcrearcuenta(self, event):
         self.v_crearcuenta.destroy()
 
@@ -229,7 +273,6 @@ class VentanaIngresarCarcel():
 
         self.ventana_carcel = self.builder.get_object("VentanaCarcel")
         self.ventana_carcel.set_title("Inicio de Carcel")
-        self.ventana_carcel.connect("destroy", Gtk.main_quit)
 
         self.crear_carcel = self.builder.get_object("CrearCarcel")
         self.crear_carcel.connect("clicked", self.formulariocarcel)
@@ -260,7 +303,13 @@ class VentanaIngresarCarcel():
 
     def ok(self, event):
         nombre_carcel = obtener_valor_combobox(self.combo_carceles)
-        p = VentanaMain(nombre_carcel, self.rango)
+
+        if nombre_carcel != 'error':
+            p = VentanaMain(nombre_carcel, self.rango)
+        elif nombre_carcel == 'error':
+            error = 'seleccionar_carcel'
+            p = VentanaPermiso(error)
+
 
 class FormularioCarcel():
     def __init__(self, rango):
@@ -422,78 +471,75 @@ class VentanaAdd():
         estado = obtener_valor_combobox(self.combo_estado)
         descripcion = self.descripcion.get_text()
 
-        largo = len(rut)
+        if celda == "error" or estado == "error":
+            error = 'faltan_datos'
+            p = VentanaPermiso(error)
 
-        exito = 0
+        else:
+            largo = len(rut)
 
-        repetido = 0
-        rpt = 0
-
-        data_rut = open_file(self.nombre_carcel)
-
-        for i in range(0, len(data_rut)):
-            if rut == data_rut[i]['rut']:
-                rpt = rpt + 1
-
-        if rpt == 0:
-            repetido = 1
-
-        if largo >= 11:
-            if rut[largo-2] == '-' and rut[largo-6] == '.' and rut[largo-10] == '.':
-                exito = 1
-                if repetido == 0:
-                    exito = 0
-
-        elif largo < 11:
             exito = 0
 
-        if exito == 1 and repetido == 1:
-            #DISMINUIR CAPACIDAD DE LA CELDA ELIJIDA
 
-            data4 = open_file_capacidad(self.nombre_carcel)
-            celda_selec = data4[0][str(celda)]
-            celda_selec = celda_selec - 1
-            data4[0][str(celda)] = celda_selec
-            save_file_capacidad(data4, self.nombre_carcel)
+            if largo >= 11:
+                if rut[largo-2] == '-' and rut[largo-6] == '.' and rut[largo-10] == '.':
+                    exito = 1
+                else:
+                    exito = 0
 
-            #SE CREA UN JSON CON LA HOJA DE VIDA DE UN PRISIONERO
-            data1 = open_file_life(self.nombre_carcel)
-            data1.append({str(rut):[]})
+            elif largo < 11:
+                exito = 0
 
-            for i in range(len(data1)):
-                x = data1[i].keys()
-                if(rut == (list(x)[0])):
-                    data1[i][str(rut)].append(descripcion)
+            data_rut = open_file(self.nombre_carcel)
 
-            save_file_life(data1, self.nombre_carcel)
+            repetido = 1
+
+            error = 'rut_repetido'
+            for i in range(len(data_rut)):
+                if data_rut[i]["rut"] == rut:
+                    p = VentanaPermiso(error)
+                    self.rut.set_text('')
+                    repetido = 0
+
+            if exito == 1 and repetido == 1:
+                #DISMINUIR CAPACIDAD DE LA CELDA ELIJIDA
+
+                data4 = open_file_capacidad(self.nombre_carcel)
+                celda_selec = data4[0][str(celda)]
+                celda_selec = celda_selec - 1
+                data4[0][str(celda)] = celda_selec
+                save_file_capacidad(data4, self.nombre_carcel)
+
+                #SE CREA UN JSON CON LA HOJA DE VIDA DE UN PRISIONERO
+                data1 = open_file_life(self.nombre_carcel)
+                data1.append({str(rut):[]})
+
+                for i in range(len(data1)):
+                    x = data1[i].keys()
+                    if(rut == (list(x)[0])):
+                        data1[i][str(rut)].append(descripcion)
+
+                save_file_life(data1, self.nombre_carcel)
 
 
-            dic = {"nombre": nombre,
-                    "apellido": apellido,
-                    "rut": rut,
-                    "nacionalidad": nacionalidad,
-                    "celda": celda,
-                    "sentencia": sentencia,
-                    "estado": estado,
-                    "descripcion": descripcion}
+                dic = {"nombre": nombre,
+                        "apellido": apellido,
+                        "rut": rut,
+                        "nacionalidad": nacionalidad,
+                        "celda": celda,
+                        "sentencia": sentencia,
+                        "estado": estado,
+                        "descripcion": descripcion}
 
-            data = open_file(self.nombre_carcel)
-            data.append(dic)
-            save_file(data, self.nombre_carcel)
+                data = open_file(self.nombre_carcel)
+                data.append(dic)
+                save_file(data, self.nombre_carcel)
 
-            d = VentanaExito()
+                self.dialogo_prisionero.destroy()
 
-            self.dialogo_prisionero.destroy()
-
-        elif exito == 0:
-            if repetido == 0:
-                error = 'dato_repetido'
-            if exito == 0:
-                error = 'dato_no_valido'
-            if  exito == 0 and repetido == 0:
-                error = 'dato_no_valido'
-
-            d = VentanaPermiso(error)
+            elif exito == 0:
+                error = 'rut_no_valido'
+                d = VentanaPermiso(error)
 
     def cancelar_dialogo(self, btn=None):
         self.dialogo_prisionero.destroy()
@@ -544,11 +590,9 @@ class VentanaBuscar():
         self.builder = Gtk.Builder()
         self.builder.add_from_file("main.glade")
 
-
         self.lista_prisionero1 = self.builder.get_object("ListaPrisionero1")
         self.lista_prisionero1.set_default_size(600, 400)
         self.lista_prisionero1.set_title("Lista de Prisionero")
-
 
         self.listmodel = Gtk.ListStore(str, str, str, str, str, str, str, str)
         self.treeResultado1 = self.builder.get_object("TreeResultado1")
@@ -598,7 +642,8 @@ class VentanaBuscar():
                     it = i
                     data[it]['estado'] = 'Liberado'
                     save_file(data, self.nombre_carcel)
-                    d = VentanaExito()
+                    self.lista_prisionero1.destroy()
+                    d = VentanaBuscar(self.rut, self.rango, self.nombre_carcel)
 
         elif(self.rango != 'Alcaide'):
             d = VentanaPermiso(self.error)
@@ -615,17 +660,21 @@ class VentanaBuscar():
                     it = i
                     data[it]['estado'] = 'Prisionero'
                     save_file(data, self.nombre_carcel)
-                    d = VentanaExito()
+                    self.lista_prisionero1.destroy()
+                    d = VentanaBuscar(self.rut, self.rango, self.nombre_carcel)
 
         elif(self.rango != 'Alcaide'):
             d = VentanaPermiso(self.error)
 
     def editar_descripcion(self, event):
         if(self.rango != 'Guardia'):
+            self.lista_prisionero1.destroy()
             d = VentanaEdicionDescripcion(self.rut, self.nombre_carcel)
+            d = VentanaBuscar(self.rut, self.rango, self.nombre_carcel)
 
         elif(self.rango == 'Guardia'):
             d = VentanaPermiso(self.error)
+
 
 class VentanaEdicionDescripcion():
 
@@ -672,8 +721,6 @@ class VentanaEdicionDescripcion():
             if(self.rut == (list(x)[0])):
                 data1[i][str(self.rut)].append(nueva_descripcion)
                 save_file_life(data1, self.nombre_carcel)
-        d = VentanaExito()
-
         self.editar.destroy()
 
 
@@ -727,28 +774,28 @@ class VentanaPermiso():
             self.label_dialogo.set_text("Permiso denegado")
         elif self.error == 'dato_no_valido':
             self.label_dialogo.set_text("Dato no valido")
+        elif self.error == 'rut_no_valido':
+            self.label_dialogo.set_text("Rut no valido")
+        elif self.error == 'rut_repetido':
+            self.label_dialogo.set_text("Rut repetido")
+        elif self.error == 'usr_no_valido':
+            self.label_dialogo.set_text("Usuario/Contraseña incorrectos, minimo 5 digitos")
+        elif self.error == 'combobox_error':
+            self.label_dialogo.set_text("Por favor elija un rango")
+        elif self.error == 'usr_pass_error':
+            self.label_dialogo.set_text("Usuario/Contraseña incorrecta")
+        elif self.error == 'cuenta_repetida':
+            self.label_dialogo.set_text("Usuario ya existente")
+        elif self.error == 'faltan_datos':
+            self.label_dialogo.set_text("Faltan datos por especificar")
+        elif self.error == 'seleccionar_carcel':
+            self.label_dialogo.set_text("Seleccione una carcel por favor")
         self.ventana_permiso.show_all()
 
     def cerrar(self, event):
         self.ventana_permiso.destroy()
 
-class VentanaExito():
 
-    def __init__(self):
-
-
-        self.builder = Gtk.Builder()
-        self.builder.add_from_file("main.glade")
-
-        self.ventana_exito = self.builder.get_object("VentanaExito")
-
-        self.botonOKA1 = self.builder.get_object("BotonOKA1")
-        self.botonOKA1.connect("clicked", self.cerrar)
-
-        self.ventana_exito.show_all()
-
-    def cerrar(self, event):
-        self.ventana_exito.destroy()
 
 if __name__ == '__main__':
 
