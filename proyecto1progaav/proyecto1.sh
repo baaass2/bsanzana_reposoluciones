@@ -29,40 +29,49 @@ function FiltrarPDB {
 }
 
 DescargarBD
+OPC="Y"
+while [[ "$OPC" != "N"   ]]; do
+  echo "Ingrese ID de Proteina: "
+  read ID
+  ID=${ID^^}
 
-echo "Ingrese ID de Proteina: "
-read ID
-ID=${ID^^}
+  SALIR="0"
+  while [[ $SALIR != "1" ]]; do
+    if [[ -f "$ID.dot" ]]; then
+      echo "La proteina seleccionada ya tiene construido su grafico."
+      echo "Ingrese otra ID de proteina: "
+      read ID
+      ID=${ID^^}
+    else
+      SALIR="1"
+    fi
 
-SALIR="0"
-while [[ $SALIR != "1" ]]; do
-  if [[ -f "$ID.dot" ]]; then
-    echo "La proteina seleccionada ya tiene construido su grafico."
-    echo "Ingrese nuevamente proteina: "
-    read ID
-    ID=${ID^^}
-  else
-    SALIR="1"
-  fi
+  done
+
+  PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+
+  SALIR="0"
+  while [[ $SALIR != "1" ]]; do
+    if [[ $PROTEINA == '"Protein"' ]]; then
+      echo "Existe proteina en la BD."
+      DescargarPBD $ID
+      FiltrarPDB $ID
+      SALIR="1"
+    else
+      echo "ID no es una proteina."
+      echo "Ingrese otra ID de proteina: "
+      read ID
+      ID=${ID^^}
+      PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+    fi
+  done
+
+  dot -Tsvg -o "$ID".svg "$ID".dot
+  echo "Se ha finalizado la filtracion y construccion del grafico."
+  echo "¿Quiere graficar otra proteina (Y/N)"
+  read OPC
+  OPC=${OPC^^}
 
 done
 
-PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
-
-SALIR="0"
-while [[ $SALIR != "1" ]]; do
-  if [[ $PROTEINA == '"Protein"' ]]; then
-    echo "Existe proteina en la BD."
-    DescargarPBD $ID
-    FiltrarPDB $ID
-    SALIR="1"
-  else
-    echo "ID no es una proteina."
-    echo "Ingrese nuevamente proteina: "
-    read ID
-    ID=${ID^^}
-    PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
-  fi
-done
-
-dot -Tsvg -o "$ID".svg "$ID".dot
+echo "Hasta luego!"
