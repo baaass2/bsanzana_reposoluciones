@@ -47,7 +47,7 @@ while [[ $SALIR != "1" ]]; do
 
 done
 
-PROTEINA=`grep -F "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
 
 SALIR="0"
 while [[ $SALIR != "1" ]]; do
@@ -61,7 +61,7 @@ while [[ $SALIR != "1" ]]; do
     echo "Ingrese nuevamente proteina: "
     read ID
     ID=${ID^^}
-    PROTEINA=`grep -F "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+    PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
   fi
 done
 
