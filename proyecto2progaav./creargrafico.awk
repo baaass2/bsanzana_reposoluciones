@@ -7,7 +7,6 @@ BEGIN {
   LABEL = "%s%s%s%s%s[ label = \"" "%s" "\" ]"
   AALABEL = "%s%s%s [ label = \"" "%s" "\" ]"
   LCADENA = "%s%s%s -> %s%s%s [ label = \"" "Cadena %s" "\" ];"
-  #FORMULA = ((%f-Xcg)^2+(%f-Ycg)^2+(%f-Zcg)^2))^(0,5)
   printf "digraph G {\n"
   printf "rankdir=LR;\n"
 }
@@ -24,24 +23,30 @@ BEGIN {
 }
     
 END {
-    #printf ""LIGLABEL"\n",LIG,LIG
     for(i = 1; i <= NR; i++){
-        RESULTADO = ( (X[i]-Xcg)^2 + (Y[i]-Ycg)^2 + (Z[i]-Zcg)^2 )^(0.5)
-        for(k = i; k <= NR; k++){
-            if(AA[k] != AA[k+1] && RES[k] != RES[k+1]){
-                i = k+1
-                break
-            }
-        }
+        RESULTADO = ( (X[i]-Xcg)^2 + (Y[i]-Ycg)^2 + (Z[i]-Zcg)^2 )^(0.5) 
         if(RESULTADO <= DIS){
-            printf ""AALABEL"\n",AA[i],CADENA[i],RES[i],AA[i]
+            #SI ENCUENTRA UN ATOMO QUE TENGA UNA DISTANCIA IGUAL O MENOR, SE NECESITA QUE SE GRAFIQUE TODOS EL AA, Y QUE
+            #YA NO CONSIRERE ESE AMINOACIDO, SI NO, QUE SIGA CON EL AA SIGUENTE SI TIENE UN ATOMO DENTRO DE LA DISTANCIA DETERMINADA.
+            for(k = i; k <= NR; k++){  
+                if(AA[k] != AA[k+1] && RES[k] != RES[k+1]){
+                    # imatch GUARDA EL INDICE CON DEL ATOMO QUE SE TIENE QUE GRAFICAR, MÀS SU NODOS HACIA EL AA.
+                    imatch = i
+                    # ESTA IGUALDAD SIRVE PARA QUE PASE A BUSCAR OTRO ATOMO DE OTRO AA, Y NO SIGA MANDANDO EXITO DE RESULTADO CON ATOMOS DE UN AA QUE YA PASO.
+                    i = k+1    
+                    break
+                }
+            }
+
+            printf ""AALABEL"\n",AA[imatch],CADENA[imatch],RES[imatch],AA[imatch]
             printf "%s\n",FORMA1
-            printf ""UNIONLIG"\n",AA[i],CADENA[i],RES[i]
+            printf ""UNIONLIG"\n",AA[imatch],CADENA[imatch],RES[imatch]
             printf "%s\n",FORMA2
             for(j = 0; j <= NR; j++){
-                if(AA[i] == AA[j] && RES[i] == RES[j] && CADENA[i] == CADENA[j]){
-                    printf ""LABEL"\n",ATOMO[j],AA[j],CADENA[j],RES[j],LINEA[i],ATOMO[j]
-                    printf ""FLECHA"\n",ATOMO[j],AA[j],CADENA[j],RES[j],LINEA[i],AA[j],CADENA[j],RES[j]    
+                #GRAFICA TODOS LOS ATOMOS DEL AA QUE ESTA DENTRO DE LA DISTANCIA.
+                if(AA[imatch] == AA[j] && RES[imatch] == RES[j] && CADENA[imatch] == CADENA[j]){
+                    printf ""LABEL"\n",ATOMO[j],AA[j],CADENA[j],RES[j],LINEA[j],ATOMO[j]
+                    printf ""FLECHA"\n",ATOMO[j],AA[j],CADENA[j],RES[j],LINEA[j],AA[j],CADENA[j],RES[j]    
                 }
 
             }
