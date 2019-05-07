@@ -29,27 +29,28 @@ function FiltrarPDB {
 
 function LigandoPDB {
     echo "Comenzara la busqueda de ligandos."
-    awk -v ID="$1" -v CONVFMT='%.0f ' -f encontrarligando.awk hetatm_$1.txt
+    awk -v ID="$1" -v CONVFMT='%.0f ' -f $Ractual/encontrarligando.awk hetatm_$1.txt
     echo "Se encontraran el centro geometrico de los ligandos"
     totalligandos=`ls | grep -ic "$1lig"`
     for (( i=1; i <= totalligandos; i++ )); do
         ligando=`ls | grep -i "$1lig" | sed -n "$i p"`
         echo $ligando
         LIGA=${ligando:7}
-        awk -v CONVFMT='%.0f ' -f centrogeometrico.awk $ligando >> vector$ligando.txt
+        awk -v CONVFMT='%.0f ' -f $Ractual/centrogeometrico.awk $ligando >> vector$ligando.txt
         X=`sed -n '1 p' vector$ligando.txt`
         Y=`sed -n '2 p' vector$ligando.txt`
         Z=`sed -n '3 p' vector$ligando.txt`
-        awk -v Xcg=$X -v Ycg=$Y -v Zcg=$Z -v DIS=$2 -v CONVFMT='%.0f ' -f creargrafico.awk atom_$1.txt >> final$ligando.dot
-        dot -Tpng -o SVG$LIGA.png final$ligando.dot
+        awk -v Xcg=$X -v Ycg=$Y -v Zcg=$Z -v DIS=$2 -v CONVFMT='%.0f ' -f $Ractual/creargrafico.awk atom_$1.txt >> final$ligando.dot
+        dot -Tpng -o $Ractual/$LIGA.png $Ractual/$1/final$ligando.dot
 
     done
 
 }
 
+Ractual=`pwd`
 DescargarBD
 OPC="Y"
-while [[ "$OPC" != "N"   ]]; do
+while [[ "$OPC" != "N" ]]; do
     echo "Ingrese ID de Proteina: "
     read ID
     ID=${ID^^}
@@ -58,7 +59,7 @@ while [[ "$OPC" != "N"   ]]; do
 
     SALIR="0"
     while [[ $SALIR != "1" ]]; do
-        if [[ -f "$ID.dot" ]]; then
+        if [[ -d "$ID" ]]; then
             echo "La proteina seleccionada ya tiene construido su grafico."
             echo "Ingrese otra ID de proteina: "
             read ID
@@ -69,12 +70,15 @@ while [[ "$OPC" != "N"   ]]; do
 
     done
 
-    PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+    PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
 
     SALIR="0"
     while [[ $SALIR != "1" ]]; do
-        if [[ $PROTEINA == '"Protein"' ]]; then
+    	if [[ $PROTEINA == '"Protein"' ]]; then
             echo "Existe proteina en la BD."
+		    mkdir "$ID"
+            mkdir render_$ID
+            cd "$ID"
             DescargarPBD $ID
             FiltrarPDB $ID
             LigandoPDB $ID $DIS
@@ -84,7 +88,7 @@ while [[ "$OPC" != "N"   ]]; do
             echo "Ingrese otra ID de proteina: "
             read ID
             ID=${ID^^}
-            PROTEINA=`grep -w "$ID" bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+            PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
         fi
     done
 
