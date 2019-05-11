@@ -9,6 +9,7 @@ BEGIN {
   LCADENA = "%s%s%s -> %s%s%s [ label = \"" "Cadena %s" "\" ];"
   printf "digraph G {\n"
   printf "rankdir=LR;\n"
+  DIS = 0 + DIS
 }
 
 {   
@@ -33,7 +34,7 @@ END {
                     # imatch GUARDA EL INDICE CON DEL ATOMO QUE SE TIENE QUE GRAFICAR, MÀS SU NODOS HACIA EL AA.
                     imatch = i
                     # ESTA IGUALDAD SIRVE PARA QUE PASE A BUSCAR OTRO ATOMO DE OTRO AA, Y NO SIGA MANDANDO EXITO DE RESULTADO CON ATOMOS DE UN AA QUE YA PASO.
-                    i = k+1    
+                    i = k    
                     break
                 }
             }

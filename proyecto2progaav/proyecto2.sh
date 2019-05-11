@@ -49,53 +49,46 @@ function LigandoPDB {
 
 Ractual=`pwd`
 DescargarBD
-OPC="Y"
-while [[ "$OPC" != "N" ]]; do
-    echo "Ingrese ID de Proteina: "
-    read ID
-    ID=${ID^^}
 
-    SALIR="0"
-    while [[ $SALIR != "1" ]]; do
-        if [[ -d "render_$ID" ]]; then
-            echo "La proteina seleccionada ya tiene construido su grafico."
-            echo "Ingrese otra ID de proteina: "
-            read ID
-            ID=${ID^^}
-        else
-            SALIR="1"
-        fi
+echo "Ingrese ID de Proteina: "
+read ID
+ID=${ID^^}
 
-    done
+SALIR="0"
+while [[ $SALIR != "1" ]]; do
+    if [[ -d "render_$ID" ]]; then
+        echo "La proteina seleccionada ya tiene construido su grafico."
+        echo "Ingrese otra ID de proteina: "
+        read ID
+        ID=${ID^^}
+    else
+        SALIR="1"
+    fi
 
-    PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+done
 
-    SALIR="0"
-    while [[ $SALIR != "1" ]]; do
-    	if [[ $PROTEINA == '"Protein"' ]]; then
-            echo "Existe proteina en la BD."
-            echo "Ingrese distancia: "
-            read DIS
-		    mkdir "$ID"
-            mkdir "render_$ID"
-            cd "$ID"
-            DescargarPBD $ID
-            FiltrarPDB $ID
-            LigandoPDB $ID $DIS
-            SALIR="1"
-        else
-            echo "ID no es una proteina."
-            echo "Ingrese otra ID de proteina: "
-            read ID
-            ID=${ID^^}
-            PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
-        fi
-    done
-    cd $Racutal
-    echo "Se ha finalizado la filtracion y construccion del grafico."
-    echo "¿Quiere graficar otra proteina (Y/N)"
-    read OPC
-    OPC=${OPC^^}
+PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+
+SALIR="0"
+while [[ $SALIR != "1" ]]; do
+	if [[ $PROTEINA == '"Protein"' ]]; then
+        echo "Existe proteina en la BD."
+        echo "Ingrese distancia: "
+        read DIS
+	    mkdir "$ID"
+        mkdir "render_$ID"
+        cd "$ID"
+        DescargarPBD $ID
+        FiltrarPDB $ID
+        LigandoPDB $ID $DIS
+        SALIR="1"
+    else
+        echo "ID no es una proteina."
+        echo "Ingrese otra ID de proteina: "
+        read ID
+        ID=${ID^^}
+        PROTEINA=`grep -w "$ID" $Ractual/bd-pdb.txt | rev | awk -F, '{ print $1 }' | rev`
+    fi
 done
 
 echo "Hasta luego!"
